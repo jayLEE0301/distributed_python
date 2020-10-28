@@ -1,0 +1,5 @@
+{
+    "ip_type": "local",
+    "port": 55555,
+    "authkey": "password"
+}
