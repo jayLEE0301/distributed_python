@@ -9,6 +9,7 @@ import queue
 import socket
 import time
 from types import SimpleNamespace
+import urllib.request
 
 
 # def make_server_manager(port, authkey):
@@ -104,8 +105,10 @@ class Server(SyncManager):
     
     counter = 0
 
-    def __init__(self, port, authkey, ip_type='global'):
-        if ip_type == 'global':
+    def __init__(self, port, authkey, ip_type='local'):
+        if ip_type == 'public':
+            self.ip = urllib.request.urlopen('https://api.ipify.org/').read().decode('utf8')
+        elif ip_type == 'primary': # could be public or private (if behind NAT) 
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(('1.1.1.1', 53))
             self.ip = s.getsockname()[0]
@@ -238,15 +241,18 @@ if __name__ == "__main__":
     parser.add_argument('--identity', type=str,
         help='Specify agent identity. Available identities are %s'%list_of_identities
     )
+    parser.add_argument('--config', type=str,
+        help='Configuration file'
+    )
     args = parser.parse_args()
     assert args.identity in list_of_identities, 'Invalid agent identity. Available identities are %s'%list_of_identities
     
-    json_filename = 'configs/%s_example.json'%(args.identity)
-    path_to_config = str((Path(__file__).parent / json_filename).resolve())
+    config_path = 'configs/%s'%(args.config)
+    path_to_config = str((Path(__file__).parent / config_path).resolve())
     with open(path_to_config, 'r') as f:
         params = json.load(f, object_hook=lambda d : SimpleNamespace(**d))
     if args.identity == 'server':
-        server = Server(params.port, str.encode(params.authkey), ip_type='local')
+        server = Server(params.port, str.encode(params.authkey), ip_type=getattr(params,'ip_type','local'))
         server.start()
         results = server.run()
         print(results)
