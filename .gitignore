@@ -153,3 +153,5 @@ dmypy.json
 
 ### custom
 configs/*
+!configs/server_example.json
+!configs/client_example.json
