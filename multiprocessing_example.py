@@ -140,9 +140,18 @@ class Client(SyncManager):
                     args=(shared_job_q, shared_result_q))
             procs.append(p)
             p.start()
+        print('started %d processes'%(len(procs)))
 
-        for p in procs:
-            p.join()
+        done_procs = []
+        failed_procs = []
+        while len(done_procs) != len(procs):
+            for p in procs:
+                if (not p.is_alive()) and (p not in done_procs):
+                    p.join(0)
+                    if p.exitcode == 0: done_procs.append(p)
+                    else: failed_procs.append(p)
+            time.sleep(1)
+            print('%d processes running (done: %d, failed: %d)'%(len(procs) - len(done_procs), len(done_procs), len(failed_procs)))
 
 Client.register('get_job_q')
 Client.register('get_result_q')
