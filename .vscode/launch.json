@@ -10,7 +10,60 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Python: Run client (locally)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/multiprocessing_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--identity", "client",
+                "--config", "client_example.json"
+            ],
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Python: Run server (locally)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/multiprocessing_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--identity", "server",
+                "--config", "server_example.json"
+            ],
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Python: Run client",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/multiprocessing_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--identity", "client",
+                "--config", "client.json"
+            ],
+            "justMyCode": false,
+            "subProcess": true
+        },
+        {
+            "name": "Python: Run server",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/multiprocessing_example.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--identity", "server",
+                "--config", "server.json"
+            ],
+            "justMyCode": false,
+            "subProcess": true
         }
     ]
 }
