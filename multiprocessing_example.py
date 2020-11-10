@@ -11,6 +11,8 @@ import time
 from types import SimpleNamespace
 import urllib.request
 
+from utils import ROSRate
+
 
 class Server(SyncManager):
     
@@ -142,15 +144,17 @@ class Client(SyncManager):
             p.start()
         print('started %d processes'%(len(procs)))
 
+        rate = ROSRate(1)
+
         done_procs = []
         failed_procs = []
-        while len(done_procs) != len(procs):
+        while len(done_procs) + len(failed_procs) != len(procs):
             for p in procs:
                 if (not p.is_alive()) and (p not in done_procs):
                     p.join(0)
                     if p.exitcode == 0: done_procs.append(p)
                     else: failed_procs.append(p)
-            time.sleep(1)
+            rate.sleep()
             print('%d processes running (done: %d, failed: %d)'%(len(procs) - len(done_procs), len(done_procs), len(failed_procs)))
 
 Client.register('get_job_q')
@@ -186,8 +190,8 @@ if __name__ == "__main__":
         stime = time.time()
         results = server.run()
         ftime = time.time()
-        print(results)
-        print(ftime - stime, 'seconds')
+        print('number of results:', len(results))
+        print('elapsed time:', ftime - stime, 'seconds')
     elif args.identity == 'client':
         client = Client(params.ip, params.port, str.encode(params.authkey))
         client.connect()
