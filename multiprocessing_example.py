@@ -6,12 +6,13 @@ import multiprocessing
 from multiprocessing.managers import SyncManager
 from pathlib import Path
 import queue
+import signal
 import socket
 import time
 from types import SimpleNamespace
 import urllib.request
 
-from utils import ROSRate
+from utils import ROSRate, prompt_yes_or_no
 
 
 class Server(SyncManager):
@@ -95,10 +96,17 @@ Server.register('get_result_q', callable=lambda: Server.result_q)
 class Client(SyncManager):
 
     def __init__(self, ip, port, authkey):
+        # prevent SIGINT signal from affecting the manager
+        signal.signal(signal.SIGINT, self._signal_handling)
+        self.default_handler = signal.getsignal(signal.SIGINT)
+        
         self.ip = ip
         self.port = port
         super(Client, self).__init__(address=(ip, port), authkey=authkey)
         print('Configured client')
+
+        self.resume = True
+        self.terminate = False
 
     def connect(self, *args, **kwargs):
         super(Client, self).connect(*args, **kwargs)
@@ -107,7 +115,7 @@ class Client(SyncManager):
     def run(self):
         job_q = self.get_job_q()
         result_q = self.get_result_q()
-        Client.mp_factorizer(job_q, result_q, 4)
+        self.mp_factorizer(job_q, result_q, 4)
 
     @staticmethod
     def factorize_naive(n):
@@ -128,8 +136,7 @@ class Client(SyncManager):
             except queue.Empty:
                 return
 
-    @staticmethod
-    def mp_factorizer(shared_job_q, shared_result_q, nprocs):
+    def mp_factorizer(self, shared_job_q, shared_result_q, nprocs):
         """ Split the work with jobs in shared_job_q and results in
             shared_result_q into several processes. Launch each process with
             factorizer_worker as the worker function, and wait until all are
@@ -137,11 +144,13 @@ class Client(SyncManager):
         """
         procs = []
         for i in range(nprocs):
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
             p = multiprocessing.Process(
                     target=Client.factorizer_worker,
                     args=(shared_job_q, shared_result_q))
             procs.append(p)
             p.start()
+            signal.signal(signal.SIGINT, self.default_handler)
         print('started %d processes'%(len(procs)))
 
         rate = ROSRate(1)
@@ -154,8 +163,24 @@ class Client(SyncManager):
                     p.join(0)
                     if p.exitcode == 0: done_procs.append(p)
                     else: failed_procs.append(p)
-            rate.sleep()
             print('%d processes running (done: %d, failed: %d)'%(len(procs) - len(done_procs), len(done_procs), len(failed_procs)))
+
+            # SIGINT(ctrl-c) handler
+            if self.terminate:
+                self.resume = prompt_yes_or_no('Resume?')
+                if self.resume:
+                    print('resuming...')
+                    self.terminate = False
+            if self.terminate:
+                for p in procs:
+                    p.terminate()
+                break
+
+            rate.sleep()
+    
+    def _signal_handling(self, signum, frame):
+        self.terminate = True
+        print('pausing... Please wait!')
 
 Client.register('get_job_q')
 Client.register('get_result_q')

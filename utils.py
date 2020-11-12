@@ -36,3 +36,14 @@ class ROSRate(object):
             return True
 
         return time.sleep(sleep_duration)
+
+
+def prompt_yes_or_no(query):
+    while True:
+        response = input(query + ' [Y/n] ').lower()
+        if response in {'y', 'yes'}:
+            return True
+        elif response in {'n', 'no'}:
+            return False
+        else:
+            print('Invalid response!\n')
