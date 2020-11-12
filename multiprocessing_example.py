@@ -1,6 +1,7 @@
 # reference: https://eli.thegreenplace.net/2012/01/24/distributed-computing-in-python-with-multiprocessing
 import argparse
 from functools import reduce
+import IPython
 import json
 import multiprocessing
 from multiprocessing.managers import SyncManager
@@ -128,11 +129,20 @@ class Client(SyncManager):
             the result (dict mapping number -> list of factors) is placed into
             result_q. Runs until job_q is empty.
         """
+
+        def mute_terminal():
+            import os
+            import sys
+            sys.stdout = open(os.devnull, 'w')
+            sys.stderr = open(os.devnull, 'w')
+        # mute_terminal()
+
         while True:
             try:
                 job = job_q.get_nowait()
                 outdict = {n: Client.factorize_naive(n) for n in job}
                 result_q.put(outdict)
+                print('result dumped')
             except queue.Empty:
                 return
 
@@ -169,7 +179,7 @@ class Client(SyncManager):
             if self.terminate:
                 self.resume = prompt_yes_or_no('Resume?')
                 if self.resume:
-                    print('resuming...')
+                    IPython.embed()
                     self.terminate = False
             if self.terminate:
                 for p in procs:
